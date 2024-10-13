@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  LambdaName:
+    Type: String
+    Default: "lambda-python"
+
+  ApiGateway:
+    Type: String
+    Default: "api-python"
+
+  Role:
+    Type: String
+    Default: "role-python"
+
+  Policy:
+    Type: String
+    Default: "policy-python"
+
+Resources:
+  RoleLambda:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref Role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "lambda.amazonaws.com"
+            Action: "sts:AssumeRole"
+
+      Policies:
+        - PolicyName: !Ref Policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+
+  PythonLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: !Ref LambdaName
+      Runtime: "python3.12"
+      Handler: "index.handler"
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {
+                  'statusCode': 200,
+                  'body': 'Hello from my lambda'
+              }
+      Role: !GetAtt RoleLambda.Arn
+
+  ApiPython:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Ref ApiGateway
+
+  ApiResources:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiPython.RootResourceId
+      PathPart: "hellopython"
+      RestApiId: !Ref ApiPython
+
+  Method:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: "NONE"
+      HttpMethod: "GET"
+      ResourceId: !Ref ApiResources
+      RestApiId: !Ref ApiPython
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: AWS_PROXY
+        Uri:
+          Fn::Sub:
+            - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PythonLambda.Arn}/invocations
+            - { PythonLambda: !Ref ApiPython }
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !GetAtt PythonLambda.Arn
+      Principal: "apigateway.amazonaws.com"
+  
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: Method 
+    Properties: 
+      RestApiId: !Ref ApiPython 
+      StageName: prod
+
+
+Outputs:
+  ApiURL:
+    Value: 
+      Fn::Sub: 
+       - https://${ApiPython}.execute-api.${AWS::Region}.amazonaws.com/prod/hellopython
+       - { ApiPython: !Ref ApiPython }
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiUrl
+    Description: Api url
+  
+  LambdaArn:
+    Description: Lambda arn 
+    Value: !GetAtt PythonLambda.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaArn

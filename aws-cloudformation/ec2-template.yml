@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  MyEC2Instance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      AdditionalInfo: "Cloudformation EC2 test"
+      AvailabilityZone: "us-east-1c"
+      DisableApiTermination: false
+      EbsOptimized: false
+      ImageId: "ami-04a81a99f5ec58529"
+      InstanceInitiatedShutdownBehavior: "stop"
+      InstanceType: "t2.micro"
+      KeyName: "ec2"
+      Monitoring: false
+      SecurityGroupIds:
+        - "sg-0c8af926ac3390d7e"
+      Tags:
+        - Key: "Name"
+          Value: "cloudec2-express"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          # Update and install prerequisites
+          sudo apt-get update -y
+          sudo apt install golang-go git libcap2-bin -y
+
+          # Create directory and clone repo
+          mkdir -p /var/www/html
+          cd /var/www/html
+          git clone https://github.com/MBI-88/edutin-go-server.git
+
+          # Build and run the Go application
+          cd edutin-go-server
+          sudo go build -buildvcs=false -o app
+          sudo ./app
