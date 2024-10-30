@@ -1,0 +1,151 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: EKS template test
+
+Parameters:
+  ClusterName:
+    Type: String
+    Default: MyEKScluster
+    Description: eks cluster name
+
+  NodeGroupName:
+    Type: String
+    Default: MyNode
+    Description: eks node group
+  
+  Subnet1:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-0f7a70d255c5e800b
+
+  Subnet2:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-0053acfccbeccb228
+  
+  Vpc:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-08f53ec4c13d47c08
+  
+  InstanceTypes:
+    Type: String
+    Default: t2.micro
+    Description: EC2 instance type
+    
+
+
+Resources:
+
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: eks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+  
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EKS security group
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp 
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+
+
+
+  Cluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: !Ref ClusterName
+      RoleArn: !GetAtt Role.Arn
+      ResourcesVpcConfig:
+        SubnetIds: 
+          - !Ref Subnet1 
+          - !Ref Subnet2
+        SecurityGroupIds: 
+          - !Ref SecurityGroup
+
+ 
+  NodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+
+
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      ClusterName: !Ref Cluster
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      Subnets: 
+       - !Ref Subnet1 
+       - !Ref Subnet2
+      ScalingConfig:
+        MinSize: 1
+        MaxSize: 3
+        DesiredSize: 2
+      InstanceTypes: 
+       - !Ref InstanceTypes
+      NodegroupName: !Ref NodeGroupName
+      DiskSize: 20
+
+  
+
+
+
+
+Outputs:
+  ClusterName:
+    Description: EKS name
+    Value: !Ref Cluster
+
+  NodeGroupName:
+    Description: EKS group name
+    Value: !Ref NodeGroup
+
+
+#Paso 1: Instalar el CLI de AWS y kubectl (si aún no los tienes)
+#Instala el AWS CLI: Sigue esta guía de instalación del AWS CLI.
+#Instala kubectl: Puedes instalar kubectl desde la página oficial de Kubernetes.
+#Paso 2: Configura el Acceso a EKS
+#Obtén las Credenciales del Clúster: Con AWS CLI, utiliza el siguiente comando para obtener las credenciales de acceso al clúster. Esto configura kubectl para conectarse a tu clúster de EKS.
+
+
+#aws eks --region <your-region> update-kubeconfig --name <ClusterName>
+#Reemplaza <your-region> (por ejemplo, us-east-1) y <ClusterName> con el nombre de tu clúster EKS (por defecto, MyEKScluster en tu plantilla).
+
+#Esto actualizará tu archivo kubeconfig (generalmente ubicado en ~/.kube/config), para que kubectl pueda comunicarse con tu clúster EKS.
+
+#Verifica la Conexión: Ejecuta un comando de prueba para verificar que tienes acceso al clúster. Por ejemplo:
+
+
+#kubectl get nodes
+#Esto debería listar los nodos de tu clúster EKS si todo está configurado correctamente.
+
+#Paso 3: Desplegar Aplicaciones en el Clúster
+#Ahora puedes usar kubectl para gestionar recursos en tu clúster de EKS. Puedes, por ejemplo, desplegar una aplicación:
+
+
+#kubectl apply -f <your-deployment-file>.yaml
+#Esto aplicará el archivo YAML que especifica tus recursos de Kubernetes, como Deployments o Services.
