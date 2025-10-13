@@ -15,7 +15,7 @@ resource "aws_iam_role" "role_lambda" {
 
 resource "aws_iam_role_policy" "lambda_polices" {
   name = var.policy
-  role = aws_iam_role.role_lambda
+  role = aws_iam_role.role_lambda.arn
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
