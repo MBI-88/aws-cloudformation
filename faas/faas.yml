@@ -1,0 +1,110 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub
+        - ${ResourceName} From Stack ${AWS::StackName}
+        - ResourceName: Api
+      StageName: Prod
+      DefinitionBody:
+        openapi: '3.0'
+        info: {}
+        paths:
+          /:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PaymentDetection.Arn}/invocations
+              responses: {}
+      EndpointConfiguration: REGIONAL
+      TracingEnabled: true
+      Cors:
+        MaxAge: 5
+  SavePayment:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: SavePayment
+      CodeUri: src/Function
+      Handler: handler.handler
+      Runtime: python3.12
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          EXTERNALRDS_PORT: !Ref ExternalRDSPort
+          EXTERNALRDS_HOSTNAME: !Ref ExternalRDSHostname
+          EXTERNALRDS_SECRETARN: !Ref ExternalRDSSecretArn
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref ExternalRDSSecretArn
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt Queue.Arn
+            BatchSize: 1
+  SavePaymentLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SavePayment}
+  Queue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      MessageRetentionPeriod: 345600
+  PaymentDetection:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: PaymentDetection
+      CodeUri: src/Function2
+      Handler: handler.handler
+      Runtime: python3.12
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Environment:
+        Variables:
+          QUEUE_QUEUE_NAME: !GetAtt Queue.QueueName
+          QUEUE_QUEUE_ARN: !GetAtt Queue.Arn
+          QUEUE_QUEUE_URL: !Ref Queue
+      Events:
+        ApiGET:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref Api
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt Queue.QueueName
+  PaymentDetectionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${PaymentDetection}
+Metadata:
+  AWS::Composer::ExternalResources:
+    ExternalRDS:
+      Type: externalRDS
+      Settings:
+        Port: !Ref ExternalRDSPort
+        Hostname: !Ref ExternalRDSHostname
+        SecretArn: !Ref ExternalRDSSecretArn
+Parameters:
+  ExternalRDSPort:
+    Type: Number
+    Default: 27017
+  ExternalRDSHostname:
+    Type: String
+    Default: myDB
+  ExternalRDSSecretArn:
+    Type: String

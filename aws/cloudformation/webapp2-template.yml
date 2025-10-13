@@ -14,8 +14,11 @@ Resources:
   WebAppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Join [ '-', [ webapp-security-group, dev ] ]
-      GroupDescription: 'Allow HTTP/HTTPS and SSH inbound and outbound traffic'
+      GroupName: !Join
+        - '-'
+        - - webapp-security-group
+          - dev
+      GroupDescription: Allow HTTP/HTTPS and SSH inbound and outbound traffic
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -37,7 +40,10 @@ Resources:
       InstanceId: !Ref WebAppInstance
       Tags:
         - Key: Name
-          Value: !Join [ '-', [ webapp-eip, dev ] ]
+          Value: !Join
+            - '-'
+            - - webapp-eip
+              - dev
 
 Outputs:
   WebsiteURL:

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: Gateway
+  namespace: default
+spec:
+  selector:
+    app: gateway-nginx
+  type: LoadBalancer
+  sessionAffinity: None
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+    - name: gateway-port
+      protocol: TCP
+      port: 443
+      targetPort: 443

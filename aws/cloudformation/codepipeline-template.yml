@@ -14,7 +14,8 @@ Parameters:
 
   CodeDeployServiceRole:
     Type: String
-    Description: A service role ARN granting CodeDeploy permission to make calls to EC2 instances with CodeDeploy agent installed.
+    Description: A service role ARN granting CodeDeploy permission to make calls to
+      EC2 instances with CodeDeploy agent installed.
 
   TagKey:
     Description: The EC2 tag key that identifies this as a target for deployments.
@@ -43,30 +44,28 @@ Resources:
               Service: codebuild.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: "logs"
+        - PolicyName: logs
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
-                -
-                  Effect: "Allow"
-                  Action:
-                      - logs:CreateLogGroup
-                      - logs:CreateLogStream
-                      - logs:PutLogEvents
-                      - ecr:GetAuthorizationToken
-                      - ssm:GetParameters
-                  Resource: "*"
-        - PolicyName: "S3"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ecr:GetAuthorizationToken
+                  - ssm:GetParameters
+                Resource: '*'
+        - PolicyName: S3
           PolicyDocument:
-            Version: "2012-10-17"
+            Version: '2012-10-17'
             Statement:
-                -
-                  Effect: "Allow"
-                  Action:
-                      - s3:GetObject
-                      - s3:PutObject
-                      - s3:GetObjectVersion
-                  Resource: !Sub arn:aws:s3:::${ArtifactBucket}/*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:GetObjectVersion
+                Resource: !Sub arn:aws:s3:::${ArtifactBucket}/*
 
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
@@ -90,7 +89,7 @@ Resources:
                 Effect: Allow
                 Action:
                   - s3:*
-              - Resource: "*"
+              - Resource: '*'
                 Effect: Allow
                 Action:
                   - codebuild:StartBuild
@@ -101,7 +100,7 @@ Resources:
                 Effect: Allow
                 Action:
                   - codestar-connections:UseConnection
-              - Resource: "*"
+              - Resource: '*'
                 Effect: Allow
                 Action:
                   - codedeploy:CreateDeployment
@@ -117,7 +116,7 @@ Resources:
     DeletionPolicy: Delete
 
   CodeStarConnection:
-    Type: 'AWS::CodeStarConnections::Connection'
+    Type: AWS::CodeStarConnections::Connection
     Properties:
       ConnectionName: CfnExamplesGitHubConnection
       ProviderType: GitHub
@@ -145,10 +144,10 @@ Resources:
     Properties:
       ApplicationName: !Ref CodeDeployApplication
       Ec2TagFilters:
-        - Key: !Ref 'TagKey'
-          Value: !Ref 'TagValue'
+        - Key: !Ref TagKey
+          Value: !Ref TagValue
           Type: KEY_AND_VALUE
-      ServiceRoleArn: !Ref 'CodeDeployServiceRole'
+      ServiceRoleArn: !Ref CodeDeployServiceRole
 
   Pipeline:
     Type: AWS::CodePipeline::Pipeline

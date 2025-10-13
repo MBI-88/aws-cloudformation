@@ -1,24 +1,24 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   MyEC2Instance:
-    Type: "AWS::EC2::Instance"
+    Type: AWS::EC2::Instance
     Properties:
-      AdditionalInfo: "Cloudformation EC2 test"
-      AvailabilityZone: "us-east-1c"
+      AdditionalInfo: Cloudformation EC2 test
+      AvailabilityZone: us-east-1c
       DisableApiTermination: false
       EbsOptimized: false
-      ImageId: "ami-04a81a99f5ec58529"
-      InstanceInitiatedShutdownBehavior: "stop"
-      InstanceType: "t2.micro"
-      KeyName: "ec2"
+      ImageId: ami-04a81a99f5ec58529
+      InstanceInitiatedShutdownBehavior: stop
+      InstanceType: t2.micro
+      KeyName: ec2
       Monitoring: false
       SecurityGroupIds:
-        - "sg-0c8af926ac3390d7e"
+        - sg-0c8af926ac3390d7e
       Tags:
-        - Key: "Name"
-          Value: "cloudec2-express"
-      UserData:
-        Fn::Base64: !Sub |
+        - Key: Name
+          Value: cloudec2-express
+      UserData: !Base64
+        Fn::Sub: |
           #!/bin/bash
           # Update and install prerequisites
           sudo apt-get update -y
